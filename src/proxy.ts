@@ -26,7 +26,7 @@ function json(status: number, code: string) {
   return NextResponse.json({ error: { code } }, { status });
 }
 
-export async function middleware(req: NextRequest) {
+export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
   const isApi = pathname.startsWith("/api/");
   const isCron = pathname.startsWith("/api/cron/"); // se autentica con Bearer CRON_SECRET en el handler
