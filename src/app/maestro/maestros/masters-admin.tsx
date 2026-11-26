@@ -20,6 +20,7 @@ export function MastersAdmin({ initial, text }: Props) {
 
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
+  const [initialPassword, setInitialPassword] = useState("");
   const [superAdmin, setSuperAdmin] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -36,7 +37,12 @@ export function MastersAdmin({ initial, text }: Props) {
       const res = await fetch("/api/masters", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ full_name: fullName.trim(), email: email.trim(), super_admin: superAdmin }),
+        body: JSON.stringify({
+          full_name: fullName.trim(),
+          email: email.trim(),
+          super_admin: superAdmin,
+          ...(initialPassword.trim() ? { initial_password: initialPassword.trim() } : {}),
+        }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -45,9 +51,12 @@ export function MastersAdmin({ initial, text }: Props) {
         return;
       }
       setOkMsg(m.created_ok);
-      setTempNote(fmt(m.temp_password_note, { email: data.email, password: data.temp_password }));
+      if (data.temp_password) {
+        setTempNote(fmt(m.temp_password_note, { email: data.email, password: data.temp_password }));
+      }
       setFullName("");
       setEmail("");
+      setInitialPassword("");
       setSuperAdmin(false);
       setBusy(false);
       router.refresh();
@@ -83,6 +92,27 @@ export function MastersAdmin({ initial, text }: Props) {
     }
   }
 
+  async function resetPassword(row: MasterRow) {
+    const newPassword = window.prompt(text.common.reset_password_prompt);
+    if (!newPassword) return;
+    try {
+      const res = await fetch(`/api/users/${row.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ new_password: newPassword }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        window.alert(errorText(data?.error?.code, text));
+        return;
+      }
+      window.alert(text.common.reset_password_ok);
+      router.refresh();
+    } catch {
+      window.alert(text.errors.internal_error ?? "Error");
+    }
+  }
+
   return (
     <div className="space-y-6">
       <section className="space-y-3 rounded-xl border border-slate-200 bg-white p-4">
@@ -102,6 +132,19 @@ export function MastersAdmin({ initial, text }: Props) {
               className="input"
               autoComplete="off"
             />
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-sm font-medium">{text.common.initial_password_label}</span>
+            <input
+              type="text"
+              value={initialPassword}
+              onChange={(e) => setInitialPassword(e.target.value)}
+              disabled={busy}
+              className="input"
+              autoComplete="off"
+              maxLength={200}
+            />
+            <span className="mt-1 block text-xs text-slate-500">{text.common.initial_password_hint}</span>
           </label>
         </div>
         <label className="flex items-start gap-2">
@@ -147,51 +190,100 @@ export function MastersAdmin({ initial, text }: Props) {
         {initial.length === 0 ? (
           <p className="text-sm text-slate-600">{m.empty}</p>
         ) : (
-          <div className="overflow-x-auto rounded-xl border border-slate-200">
-            <table className="w-full border-collapse">
-              <thead className="border-b border-slate-200 bg-slate-50">
-                <tr>
-                  <th scope="col" className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">{m.col_name}</th>
-                  <th scope="col" className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">{m.col_email}</th>
-                  <th scope="col" className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">{m.col_role}</th>
-                  <th scope="col" className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">{m.col_status}</th>
-                  <th scope="col" className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">{m.col_actions}</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {initial.map((row) => (
-                  <tr key={row.id}>
-                    <th scope="row" className="px-3 py-2 text-left text-sm font-medium">{row.full_name}</th>
-                    <td className="px-3 py-2 text-sm">{row.email}</td>
-                    <td className="px-3 py-2 text-sm">{row.super_admin ? m.role_super_admin : m.role_normal}</td>
-                    <td className="px-3 py-2 text-sm">
-                      <span className={row.active ? "text-green-700" : "text-slate-500"}>
-                        {row.active ? m.active : m.inactive}
-                      </span>
-                    </td>
-                    <td className="px-3 py-2 text-sm">
-                      <div className="flex flex-wrap gap-2">
-                        <button
-                          type="button"
-                          onClick={() => toggleActive(row)}
-                          className="rounded border border-slate-300 bg-white px-3 py-1 text-xs font-medium hover:bg-brand-50"
-                        >
-                          {row.active ? m.deactivate : m.activate}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => toggleSuperAdmin(row)}
-                          className="rounded border border-slate-300 bg-white px-3 py-1 text-xs font-medium hover:bg-brand-50"
-                        >
-                          {row.super_admin ? m.remove_super_admin : m.make_super_admin}
-                        </button>
-                      </div>
-                    </td>
+          <>
+            {/* Movil: tarjetas apiladas */}
+            <div className="space-y-2 sm:hidden">
+              {initial.map((row) => (
+                <div key={row.id} className="rounded-xl border border-slate-200 bg-white p-3 text-sm">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-medium">{row.full_name}</span>
+                    <span className={row.active ? "text-green-700" : "text-slate-500"}>
+                      {row.active ? m.active : m.inactive}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-slate-600">{row.email}</p>
+                  <p className="text-slate-600">{row.super_admin ? m.role_super_admin : m.role_normal}</p>
+                  <div className="mt-2 flex flex-col gap-2">
+                    <button
+                      type="button"
+                      onClick={() => toggleActive(row)}
+                      className="min-h-touch rounded border border-slate-300 bg-white text-sm font-medium hover:bg-brand-50"
+                    >
+                      {row.active ? m.deactivate : m.activate}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => toggleSuperAdmin(row)}
+                      className="min-h-touch rounded border border-slate-300 bg-white text-sm font-medium hover:bg-brand-50"
+                    >
+                      {row.super_admin ? m.remove_super_admin : m.make_super_admin}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => resetPassword(row)}
+                      className="min-h-touch rounded border border-slate-300 bg-white text-sm font-medium hover:bg-brand-50"
+                    >
+                      {text.common.reset_password}
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Escritorio: tabla */}
+            <div className="hidden overflow-x-auto rounded-xl border border-slate-200 sm:block">
+              <table className="w-full border-collapse">
+                <thead className="border-b border-slate-200 bg-slate-50">
+                  <tr>
+                    <th scope="col" className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">{m.col_name}</th>
+                    <th scope="col" className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">{m.col_email}</th>
+                    <th scope="col" className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">{m.col_role}</th>
+                    <th scope="col" className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">{m.col_status}</th>
+                    <th scope="col" className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">{m.col_actions}</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {initial.map((row) => (
+                    <tr key={row.id}>
+                      <th scope="row" className="px-3 py-2 text-left text-sm font-medium">{row.full_name}</th>
+                      <td className="px-3 py-2 text-sm">{row.email}</td>
+                      <td className="px-3 py-2 text-sm">{row.super_admin ? m.role_super_admin : m.role_normal}</td>
+                      <td className="px-3 py-2 text-sm">
+                        <span className={row.active ? "text-green-700" : "text-slate-500"}>
+                          {row.active ? m.active : m.inactive}
+                        </span>
+                      </td>
+                      <td className="px-3 py-2 text-sm">
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            onClick={() => toggleActive(row)}
+                            className="rounded border border-slate-300 bg-white px-3 py-1 text-xs font-medium hover:bg-brand-50"
+                          >
+                            {row.active ? m.deactivate : m.activate}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => toggleSuperAdmin(row)}
+                            className="rounded border border-slate-300 bg-white px-3 py-1 text-xs font-medium hover:bg-brand-50"
+                          >
+                            {row.super_admin ? m.remove_super_admin : m.make_super_admin}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => resetPassword(row)}
+                            className="rounded border border-slate-300 bg-white px-3 py-1 text-xs font-medium hover:bg-brand-50"
+                          >
+                            {text.common.reset_password}
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </section>
     </div>

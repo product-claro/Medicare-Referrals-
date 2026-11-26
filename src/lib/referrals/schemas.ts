@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { containsMbi } from "../mbi";
 import { isValidYmd } from "../dates";
+import { MIN_PASSWORD_LENGTH } from "../auth/password";
 import { ALL_STATUSES } from "./transitions";
 
 // Todos los schemas son .strict(): llaves desconocidas (mbi, medicare_number, medicaid...) -> 400 unknown_field_rejected.
@@ -11,6 +12,14 @@ export const noMbi = (v: string) => !containsMbi(v);
 
 export const freeText = (min: number, max: number) =>
   z.string().trim().min(min).max(max).refine(noMbi, { message: MBI_MESSAGE });
+
+// Contrasena inicial opcional al crear un usuario: si no se manda, se genera una temporal.
+// De cualquier forma, el usuario debe cambiarla al entrar (must_change_password siempre queda true).
+export const initialPassword = z
+  .string()
+  .max(200)
+  .refine((v) => v.length >= MIN_PASSWORD_LENGTH, { message: "password_too_short" })
+  .optional();
 
 export const uuid = z.string().uuid();
 
@@ -162,6 +171,7 @@ export const createProducerSchema = z
     npn: npn.optional(),
     phone: phone.optional(),
     email: email.optional(), // si viene, se crea tambien su usuario de acceso
+    initial_password: initialPassword,
   })
   .strict();
 
@@ -182,7 +192,9 @@ export const activeFilterQuery = (def: "true" | "all") =>
 // ---------- Clinicas ----------
 const clinicName = z.string().trim().min(2).max(200);
 
-export const createClinicSchema = z.object({ name: clinicName, email, full_name: personName }).strict();
+export const createClinicSchema = z
+  .object({ name: clinicName, email, full_name: personName, initial_password: initialPassword })
+  .strict();
 
 export const updateClinicSchema = z
   .object({ name: clinicName.optional(), active: z.boolean().optional() })
@@ -191,15 +203,20 @@ export const updateClinicSchema = z
 
 // ---------- Usuarios de una clinica (personal con login propio) ----------
 export const createClinicUserSchema = z
-  .object({ full_name: personName, email, clinic_admin: z.boolean().optional() })
+  .object({ full_name: personName, email, clinic_admin: z.boolean().optional(), initial_password: initialPassword })
   .strict();
 
 export const updateUserSchema = z
-  .object({ active: z.boolean().optional(), clinic_admin: z.boolean().optional(), super_admin: z.boolean().optional() })
+  .object({
+    active: z.boolean().optional(),
+    clinic_admin: z.boolean().optional(),
+    super_admin: z.boolean().optional(),
+    new_password: z.string().max(200).refine((v) => v.length >= MIN_PASSWORD_LENGTH, { message: "password_too_short" }).optional(),
+  })
   .strict()
   .refine((v) => Object.keys(v).length > 0, { message: "empty_update", path: ["_"] });
 
 // ---------- Cuentas de maestro (solo las crea/administra un administrador maestro) ----------
 export const createMasterSchema = z
-  .object({ full_name: personName, email, super_admin: z.boolean().optional() })
+  .object({ full_name: personName, email, super_admin: z.boolean().optional(), initial_password: initialPassword })
   .strict();

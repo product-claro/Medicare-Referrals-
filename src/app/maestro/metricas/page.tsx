@@ -163,55 +163,110 @@ export default async function MaestroMetricas({ searchParams }: { searchParams: 
 
       <section className="space-y-2">
         <h2 className="text-lg font-semibold">{mm.by_clinic}</h2>
-        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
-          {data.by_clinic.length === 0 ? (
-            <p className="p-4 text-sm text-slate-600">{mm.empty}</p>
-          ) : (
-            <table className="w-full border-collapse">
-              <thead className="border-b border-slate-200 bg-slate-50">{head(mm.col_clinic)}</thead>
-              <tbody className="divide-y divide-slate-100">
-                {data.by_clinic.map((c) => (
-                  <tr key={c.clinic_id}>
-                    <th scope="row" className={`${td} text-left font-medium`}>
-                      {c.clinic_name}
-                    </th>
-                    {countCols(c)}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
+        {data.by_clinic.length === 0 ? (
+          <p className="rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-600">{mm.empty}</p>
+        ) : (
+          <>
+            {/* Movil: tarjetas apiladas */}
+            <div className="space-y-2 sm:hidden">
+              {data.by_clinic.map((c) => (
+                <MetricCard key={c.clinic_id} name={c.clinic_name} counts={c} target={target} mm={mm} />
+              ))}
+            </div>
+            {/* Escritorio: tabla */}
+            <div className="hidden overflow-x-auto rounded-xl border border-slate-200 bg-white sm:block">
+              <table className="w-full border-collapse">
+                <thead className="border-b border-slate-200 bg-slate-50">{head(mm.col_clinic)}</thead>
+                <tbody className="divide-y divide-slate-100">
+                  {data.by_clinic.map((c) => (
+                    <tr key={c.clinic_id}>
+                      <th scope="row" className={`${td} text-left font-medium`}>
+                        {c.clinic_name}
+                      </th>
+                      {countCols(c)}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
       </section>
 
       <section className="space-y-2">
         <h2 className="text-lg font-semibold">{mm.by_producer}</h2>
         <p className="text-xs text-slate-500">{mm.producer_note}</p>
-        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
-          {data.by_producer.length === 0 ? (
-            <p className="p-4 text-sm text-slate-600">{mm.empty}</p>
-          ) : (
-            <table className="w-full border-collapse">
-              <thead className="border-b border-slate-200 bg-slate-50">{head(mm.col_producer, true)}</thead>
-              <tbody className="divide-y divide-slate-100">
-                {data.by_producer.map((p) => (
-                  <tr key={p.producer_id}>
-                    <th scope="row" className={`${td} text-left font-medium`}>
-                      {p.producer_name}
-                    </th>
-                    <td className={td}>
-                      {p.producer_type === "dependiente" || p.producer_type === "independiente"
-                        ? d.producer_type[p.producer_type]
-                        : ""}
-                    </td>
-                    {countCols(p)}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
+        {data.by_producer.length === 0 ? (
+          <p className="rounded-xl border border-slate-200 bg-white p-4 text-sm text-slate-600">{mm.empty}</p>
+        ) : (
+          <>
+            {/* Movil: tarjetas apiladas */}
+            <div className="space-y-2 sm:hidden">
+              {data.by_producer.map((p) => (
+                <MetricCard
+                  key={p.producer_id}
+                  name={p.producer_name}
+                  subtitle={
+                    p.producer_type === "dependiente" || p.producer_type === "independiente"
+                      ? d.producer_type[p.producer_type]
+                      : undefined
+                  }
+                  counts={p}
+                  target={target}
+                  mm={mm}
+                />
+              ))}
+            </div>
+            {/* Escritorio: tabla */}
+            <div className="hidden overflow-x-auto rounded-xl border border-slate-200 bg-white sm:block">
+              <table className="w-full border-collapse">
+                <thead className="border-b border-slate-200 bg-slate-50">{head(mm.col_producer, true)}</thead>
+                <tbody className="divide-y divide-slate-100">
+                  {data.by_producer.map((p) => (
+                    <tr key={p.producer_id}>
+                      <th scope="row" className={`${td} text-left font-medium`}>
+                        {p.producer_name}
+                      </th>
+                      <td className={td}>
+                        {p.producer_type === "dependiente" || p.producer_type === "independiente"
+                          ? d.producer_type[p.producer_type]
+                          : ""}
+                      </td>
+                      {countCols(p)}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
+        )}
       </section>
+    </div>
+  );
+}
+
+function MetricCard({ name, subtitle, counts, target, mm }: { name: string; subtitle?: string; counts: Counts; target: number; mm: Dictionary["master"]["metrics"] }) {
+  const stat = (label: string, value: number) => (
+    <div>
+      <p className="text-xs text-slate-500">{label}</p>
+      <p className="text-sm font-medium tabular-nums">{value}</p>
+    </div>
+  );
+  return (
+    <div className="rounded-xl border border-slate-200 bg-white p-3 text-sm">
+      <p className="font-medium">{name}</p>
+      {subtitle && <p className="text-xs text-slate-500">{subtitle}</p>}
+      <div className="mt-2 grid grid-cols-3 gap-2">
+        {stat(mm.arrived, counts.arrived)}
+        {stat(mm.unassigned, counts.unassigned)}
+        {stat(mm.in_progress, counts.in_progress)}
+        {stat(mm.closed, counts.closed)}
+        {stat(mm.enrolled, counts.enrolled)}
+        {stat(mm.not_enrolled, counts.not_enrolled)}
+      </div>
+      <div className="mt-3">
+        <RateBar pct={counts.close_rate_pct} target={target} mm={mm} />
+      </div>
     </div>
   );
 }

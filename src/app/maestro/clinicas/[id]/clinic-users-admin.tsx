@@ -21,6 +21,7 @@ export function ClinicUsersAdmin({ clinicId, initial, text }: Props) {
 
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
+  const [initialPassword, setInitialPassword] = useState("");
   const [clinicAdmin, setClinicAdmin] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -37,7 +38,12 @@ export function ClinicUsersAdmin({ clinicId, initial, text }: Props) {
       const res = await fetch(`/api/clinics/${clinicId}/users`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ full_name: fullName.trim(), email: email.trim(), clinic_admin: clinicAdmin }),
+        body: JSON.stringify({
+          full_name: fullName.trim(),
+          email: email.trim(),
+          clinic_admin: clinicAdmin,
+          ...(initialPassword.trim() ? { initial_password: initialPassword.trim() } : {}),
+        }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -46,9 +52,12 @@ export function ClinicUsersAdmin({ clinicId, initial, text }: Props) {
         return;
       }
       setOkMsg(c.user_created_ok);
-      setTempNote(fmt(c.temp_password_note, { email: data.email, password: data.temp_password }));
+      if (data.temp_password) {
+        setTempNote(fmt(c.temp_password_note, { email: data.email, password: data.temp_password }));
+      }
       setFullName("");
       setEmail("");
+      setInitialPassword("");
       setClinicAdmin(false);
       setBusy(false);
       router.refresh();
@@ -84,6 +93,27 @@ export function ClinicUsersAdmin({ clinicId, initial, text }: Props) {
     }
   }
 
+  async function resetPassword(row: ClinicUserRow) {
+    const newPassword = window.prompt(text.common.reset_password_prompt);
+    if (!newPassword) return;
+    try {
+      const res = await fetch(`/api/users/${row.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ new_password: newPassword }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        window.alert(errorText(data?.error?.code, text));
+        return;
+      }
+      window.alert(text.common.reset_password_ok);
+      router.refresh();
+    } catch {
+      window.alert(text.errors.internal_error ?? "Error");
+    }
+  }
+
   return (
     <div className="space-y-6">
       <section className="space-y-3 rounded-xl border border-slate-200 bg-white p-4">
@@ -103,6 +133,19 @@ export function ClinicUsersAdmin({ clinicId, initial, text }: Props) {
               className="input"
               autoComplete="off"
             />
+          </label>
+          <label className="block">
+            <span className="mb-1 block text-sm font-medium">{text.common.initial_password_label}</span>
+            <input
+              type="text"
+              value={initialPassword}
+              onChange={(e) => setInitialPassword(e.target.value)}
+              disabled={busy}
+              className="input"
+              autoComplete="off"
+              maxLength={200}
+            />
+            <span className="mt-1 block text-xs text-slate-500">{text.common.initial_password_hint}</span>
           </label>
         </div>
         <label className="flex items-start gap-2">
@@ -148,7 +191,48 @@ export function ClinicUsersAdmin({ clinicId, initial, text }: Props) {
         {initial.length === 0 ? (
           <p className="text-sm text-slate-600">{c.users_empty}</p>
         ) : (
-          <div className="overflow-x-auto rounded-xl border border-slate-200">
+          <>
+            {/* Movil: tarjetas apiladas */}
+            <div className="space-y-2 sm:hidden">
+              {initial.map((row) => (
+                <div key={row.id} className="rounded-xl border border-slate-200 bg-white p-3 text-sm">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-medium">{row.full_name}</span>
+                    <span className={row.active ? "text-green-700" : "text-slate-500"}>
+                      {row.active ? c.active : c.inactive}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-slate-600">{row.email}</p>
+                  <p className="text-slate-600">{row.clinic_admin ? c.role_admin : c.role_staff}</p>
+                  <div className="mt-2 flex flex-col gap-2">
+                    <button
+                      type="button"
+                      onClick={() => toggleActive(row)}
+                      className="min-h-touch rounded border border-slate-300 bg-white text-sm font-medium hover:bg-brand-50"
+                    >
+                      {row.active ? c.deactivate : c.activate}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => toggleClinicAdmin(row)}
+                      className="min-h-touch rounded border border-slate-300 bg-white text-sm font-medium hover:bg-brand-50"
+                    >
+                      {row.clinic_admin ? c.remove_admin : c.make_admin}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => resetPassword(row)}
+                      className="min-h-touch rounded border border-slate-300 bg-white text-sm font-medium hover:bg-brand-50"
+                    >
+                      {text.common.reset_password}
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Escritorio: tabla */}
+            <div className="hidden overflow-x-auto rounded-xl border border-slate-200 sm:block">
             <table className="w-full border-collapse">
               <thead className="border-b border-slate-200 bg-slate-50">
                 <tr>
@@ -186,13 +270,21 @@ export function ClinicUsersAdmin({ clinicId, initial, text }: Props) {
                         >
                           {row.clinic_admin ? c.remove_admin : c.make_admin}
                         </button>
+                        <button
+                          type="button"
+                          onClick={() => resetPassword(row)}
+                          className="rounded border border-slate-300 bg-white px-3 py-1 text-xs font-medium hover:bg-brand-50"
+                        >
+                          {text.common.reset_password}
+                        </button>
                       </div>
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
-          </div>
+            </div>
+          </>
         )}
       </section>
     </div>

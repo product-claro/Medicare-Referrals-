@@ -65,7 +65,7 @@ export default async function MaestroReferidos({ searchParams }: { searchParams:
     return `/maestro/referidos${str ? `?${str}` : ""}`;
   };
 
-  const text: UiText = { m: d.master, status: d.status, producerType: d.producer_type, errors: d.errors };
+  const text: UiText = { m: d.master, common: d.common, status: d.status, producerType: d.producer_type, errors: d.errors };
   const r = d.master.referrals;
   const pageBtn = "flex min-h-touch items-center rounded-lg border border-slate-300 bg-white px-4";
 

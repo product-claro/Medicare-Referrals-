@@ -21,7 +21,7 @@ export default async function MaestroMaestros() {
   }
 
   const masters = await listMasters();
-  const text: UiText = { m: d.master, status: d.status, producerType: d.producer_type, errors: d.errors };
+  const text: UiText = { m: d.master, common: d.common, status: d.status, producerType: d.producer_type, errors: d.errors };
 
   return (
     <div className="space-y-5">

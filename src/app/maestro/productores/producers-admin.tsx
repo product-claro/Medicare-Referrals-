@@ -23,6 +23,7 @@ export function ProducersAdmin({ initial, text }: Props) {
   const [npn, setNpn] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
+  const [initialPassword, setInitialPassword] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [okMsg, setOkMsg] = useState<string | null>(null);
@@ -50,6 +51,7 @@ export function ProducersAdmin({ initial, text }: Props) {
           ...(npn.trim() ? { npn: npn.trim() } : {}),
           ...(phone.trim() ? { phone: phone.trim() } : {}),
           ...(email.trim() ? { email: email.trim() } : {}),
+          ...(email.trim() && initialPassword.trim() ? { initial_password: initialPassword.trim() } : {}),
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -66,6 +68,7 @@ export function ProducersAdmin({ initial, text }: Props) {
       setNpn("");
       setPhone("");
       setEmail("");
+      setInitialPassword("");
       setProducerType("dependiente");
       setBusy(false);
       router.refresh();
@@ -85,6 +88,28 @@ export function ProducersAdmin({ initial, text }: Props) {
       if (res.ok) router.refresh();
     } catch {
       // silencioso: el estado visible no cambia si falla, el maestro puede reintentar
+    }
+  }
+
+  async function resetPassword(row: ProducerRow) {
+    if (!row.user) return;
+    const newPassword = window.prompt(text.common.reset_password_prompt);
+    if (!newPassword) return;
+    try {
+      const res = await fetch(`/api/users/${row.user.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ new_password: newPassword }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        window.alert(errorText(data?.error?.code, text));
+        return;
+      }
+      window.alert(text.common.reset_password_ok);
+      router.refresh();
+    } catch {
+      window.alert(text.errors.internal_error ?? "Error");
     }
   }
 
@@ -161,6 +186,19 @@ export function ProducersAdmin({ initial, text }: Props) {
             />
             <span className="mt-1 block text-xs text-slate-500">{p.email_hint}</span>
           </label>
+          <label className="block sm:col-span-2">
+            <span className="mb-1 block text-sm font-medium">{text.common.initial_password_label}</span>
+            <input
+              type="text"
+              value={initialPassword}
+              onChange={(e) => setInitialPassword(e.target.value)}
+              disabled={busy}
+              className="input"
+              autoComplete="off"
+              maxLength={200}
+            />
+            <span className="mt-1 block text-xs text-slate-500">{text.common.initial_password_hint}</span>
+          </label>
         </div>
         <button type="button" onClick={submitCreate} disabled={busy || !fullName.trim()} className="btn-primary sm:w-auto sm:min-w-[10rem]">
           {busy ? p.submitting : p.submit}
@@ -206,7 +244,34 @@ export function ProducersAdmin({ initial, text }: Props) {
           <div className="space-y-2">
             <h3 className="text-base font-semibold">{p.results_title}</h3>
             {bulkSummary && <p className="text-sm text-slate-600">{bulkSummary}</p>}
-            <div className="overflow-x-auto rounded-xl border border-slate-200">
+
+            {/* Movil: tarjetas apiladas */}
+            <div className="space-y-2 sm:hidden">
+              {bulkResults.map((r) => (
+                <div key={r.row} className="rounded-xl border border-slate-200 bg-white p-3 text-sm">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-medium">
+                      {p.col_row} {r.row}
+                    </span>
+                    <span className={r.status === "created" ? "text-green-700" : "text-amber-700"}>
+                      {r.status === "created" ? p.status_created : p.status_error}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-slate-600">
+                    {r.status === "created"
+                      ? r.temp_password && r.email
+                        ? fmt(p.temp_password_note, { email: r.email, password: r.temp_password })
+                        : r.full_name
+                      : r.error_fields
+                        ? Object.values(r.error_fields).join("; ")
+                        : errorText(r.error_code, text)}
+                  </p>
+                </div>
+              ))}
+            </div>
+
+            {/* Escritorio: tabla */}
+            <div className="hidden overflow-x-auto rounded-xl border border-slate-200 sm:block">
               <table className="w-full border-collapse">
                 <thead className="border-b border-slate-200 bg-slate-50">
                   <tr>
@@ -253,46 +318,100 @@ export function ProducersAdmin({ initial, text }: Props) {
         {initial.length === 0 ? (
           <p className="text-sm text-slate-600">{p.empty}</p>
         ) : (
-          <div className="overflow-x-auto rounded-xl border border-slate-200">
-            <table className="w-full border-collapse">
-              <thead className="border-b border-slate-200 bg-slate-50">
-                <tr>
-                  <th scope="col" className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">{p.col_name}</th>
-                  <th scope="col" className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">{p.col_type}</th>
-                  <th scope="col" className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">{p.col_npn}</th>
-                  <th scope="col" className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">{p.col_phone}</th>
-                  <th scope="col" className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">{p.col_email}</th>
-                  <th scope="col" className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">{p.col_status}</th>
-                  <th scope="col" className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">{p.col_actions}</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {initial.map((row) => (
-                  <tr key={row.id}>
-                    <th scope="row" className="px-3 py-2 text-left text-sm font-medium">{row.full_name}</th>
-                    <td className="px-3 py-2 text-sm">{text.producerType[row.producer_type]}</td>
-                    <td className="px-3 py-2 text-sm">{row.npn ?? "—"}</td>
-                    <td className="px-3 py-2 text-sm">{row.phone ?? "—"}</td>
-                    <td className="px-3 py-2 text-sm">{row.user?.email ?? p.no_email}</td>
-                    <td className="px-3 py-2 text-sm">
-                      <span className={row.active ? "text-green-700" : "text-slate-500"}>
-                        {row.active ? p.active : p.inactive}
-                      </span>
-                    </td>
-                    <td className="px-3 py-2 text-sm">
+          <>
+            {/* Movil: tarjetas apiladas */}
+            <div className="space-y-2 sm:hidden">
+              {initial.map((row) => (
+                <div key={row.id} className="rounded-xl border border-slate-200 bg-white p-3 text-sm">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-medium">{row.full_name}</span>
+                    <span className={row.active ? "text-green-700" : "text-slate-500"}>
+                      {row.active ? p.active : p.inactive}
+                    </span>
+                  </div>
+                  <p className="mt-1 text-slate-600">{text.producerType[row.producer_type]}</p>
+                  <p className="text-slate-600">
+                    {p.col_npn}: {row.npn ?? "—"}
+                  </p>
+                  <p className="text-slate-600">
+                    {p.col_phone}: {row.phone ?? "—"}
+                  </p>
+                  <p className="text-slate-600">{row.user?.email ?? p.no_email}</p>
+                  <div className="mt-2 flex flex-col gap-2">
+                    <button
+                      type="button"
+                      onClick={() => toggleActive(row)}
+                      className="min-h-touch rounded border border-slate-300 bg-white text-sm font-medium hover:bg-brand-50"
+                    >
+                      {row.active ? p.deactivate : p.activate}
+                    </button>
+                    {row.user && (
                       <button
                         type="button"
-                        onClick={() => toggleActive(row)}
-                        className="rounded border border-slate-300 bg-white px-3 py-1 text-xs font-medium hover:bg-brand-50"
+                        onClick={() => resetPassword(row)}
+                        className="min-h-touch rounded border border-slate-300 bg-white text-sm font-medium hover:bg-brand-50"
                       >
-                        {row.active ? p.deactivate : p.activate}
+                        {text.common.reset_password}
                       </button>
-                    </td>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Escritorio: tabla */}
+            <div className="hidden overflow-x-auto rounded-xl border border-slate-200 sm:block">
+              <table className="w-full border-collapse">
+                <thead className="border-b border-slate-200 bg-slate-50">
+                  <tr>
+                    <th scope="col" className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">{p.col_name}</th>
+                    <th scope="col" className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">{p.col_type}</th>
+                    <th scope="col" className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">{p.col_npn}</th>
+                    <th scope="col" className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">{p.col_phone}</th>
+                    <th scope="col" className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">{p.col_email}</th>
+                    <th scope="col" className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">{p.col_status}</th>
+                    <th scope="col" className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">{p.col_actions}</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {initial.map((row) => (
+                    <tr key={row.id}>
+                      <th scope="row" className="px-3 py-2 text-left text-sm font-medium">{row.full_name}</th>
+                      <td className="px-3 py-2 text-sm">{text.producerType[row.producer_type]}</td>
+                      <td className="px-3 py-2 text-sm">{row.npn ?? "—"}</td>
+                      <td className="px-3 py-2 text-sm">{row.phone ?? "—"}</td>
+                      <td className="px-3 py-2 text-sm">{row.user?.email ?? p.no_email}</td>
+                      <td className="px-3 py-2 text-sm">
+                        <span className={row.active ? "text-green-700" : "text-slate-500"}>
+                          {row.active ? p.active : p.inactive}
+                        </span>
+                      </td>
+                      <td className="px-3 py-2 text-sm">
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            onClick={() => toggleActive(row)}
+                            className="rounded border border-slate-300 bg-white px-3 py-1 text-xs font-medium hover:bg-brand-50"
+                          >
+                            {row.active ? p.deactivate : p.activate}
+                          </button>
+                          {row.user && (
+                            <button
+                              type="button"
+                              onClick={() => resetPassword(row)}
+                              className="rounded border border-slate-300 bg-white px-3 py-1 text-xs font-medium hover:bg-brand-50"
+                            >
+                              {text.common.reset_password}
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </section>
     </div>

@@ -10,6 +10,17 @@ import { OPEN_STATUSES } from "./referrals/transitions";
 type ActiveFilter = "true" | "false" | "all";
 const activeWhere = (f: ActiveFilter) => (f === "all" ? {} : { active: f === "true" });
 
+// Si el maestro escribe una contrasena inicial se usa esa (y no se repite en la respuesta, porque
+// quien la escribio ya la sabe); si no, se genera una temporal que se muestra una sola vez.
+// En ambos casos el usuario queda con must_change_password = true.
+async function resolveInitialPassword(initialPassword?: string) {
+  if (initialPassword) {
+    return { passwordHash: await hashPassword(initialPassword), tempPasswordToShow: null as string | null };
+  }
+  const tempPassword = generateTempPassword();
+  return { passwordHash: await hashPassword(tempPassword), tempPasswordToShow: tempPassword };
+}
+
 function producerView(p: {
   id: string;
   fullName: string;
@@ -54,10 +65,18 @@ export async function listProducers(active: ActiveFilter) {
 
 export async function createProducer(
   actorUserId: string,
-  input: { full_name: string; producer_type: "dependiente" | "independiente"; npn?: string; phone?: string; email?: string },
+  input: {
+    full_name: string;
+    producer_type: "dependiente" | "independiente";
+    npn?: string;
+    phone?: string;
+    email?: string;
+    initial_password?: string;
+  },
 ) {
-  const tempPassword = input.email ? generateTempPassword() : null;
-  const passwordHash = tempPassword ? await hashPassword(tempPassword) : null;
+  const { passwordHash, tempPasswordToShow } = input.email
+    ? await resolveInitialPassword(input.initial_password)
+    : { passwordHash: null, tempPasswordToShow: null };
   const result = await prisma.$transaction(async (tx) => {
     const p = await tx.producer.create({
       data: {
@@ -93,7 +112,7 @@ export async function createProducer(
   });
   return {
     ...producerView(result),
-    ...(tempPassword && result.user ? { temp_password: tempPassword } : {}), // se muestra una sola vez
+    ...(tempPasswordToShow && result.user ? { temp_password: tempPasswordToShow } : {}), // se muestra una sola vez
   };
 }
 
@@ -156,9 +175,11 @@ export async function listClinics(active: ActiveFilter) {
   return { items: clinics.map(clinicView) };
 }
 
-export async function createClinic(actorUserId: string, input: { name: string; email: string; full_name: string }) {
-  const tempPassword = generateTempPassword();
-  const passwordHash = await hashPassword(tempPassword);
+export async function createClinic(
+  actorUserId: string,
+  input: { name: string; email: string; full_name: string; initial_password?: string },
+) {
+  const { passwordHash, tempPasswordToShow } = await resolveInitialPassword(input.initial_password);
   const clinic = await prisma.$transaction(async (tx) => {
     const c = await tx.clinic.create({
       data: {
@@ -187,7 +208,7 @@ export async function createClinic(actorUserId: string, input: { name: string; e
     return c;
   });
   const u = clinic.users[0];
-  return { ...clinicView(clinic), user: u && { id: u.id, email: u.email, temp_password: tempPassword } };
+  return { ...clinicView(clinic), user: u && { id: u.id, email: u.email, temp_password: tempPasswordToShow } };
 }
 
 export async function getClinic(id: string) {
@@ -234,12 +255,11 @@ export async function listClinicUsers(clinicId: string) {
 export async function createClinicUser(
   actorUserId: string,
   clinicId: string,
-  input: { full_name: string; email: string; clinic_admin?: boolean },
+  input: { full_name: string; email: string; clinic_admin?: boolean; initial_password?: string },
 ) {
   const clinic = await prisma.clinic.findUnique({ where: { id: clinicId }, select: { id: true } });
   if (!clinic) throw new ApiError(404, "not_found");
-  const tempPassword = generateTempPassword();
-  const passwordHash = await hashPassword(tempPassword);
+  const { passwordHash, tempPasswordToShow } = await resolveInitialPassword(input.initial_password);
   const clinicAdmin = input.clinic_admin ?? false;
   const user = await prisma.$transaction(async (tx) => {
     const u = await tx.user.create({
@@ -258,7 +278,7 @@ export async function createClinicUser(
     });
     return u;
   });
-  return { ...clinicUserView(user), temp_password: tempPassword };
+  return { ...clinicUserView(user), temp_password: tempPasswordToShow };
 }
 
 // Generico para cualquier rol: activa o desactiva un usuario. El llamador decide que hacer con la
@@ -270,6 +290,22 @@ export async function setUserActive(actorUserId: string, userId: string, active:
     const u = await tx.user.update({ where: { id: userId }, data: { active } });
     await tx.auditLog.create({
       data: { actorUserId, action: active ? "user.activated" : "user.deactivated", entityType: "user", entityId: userId },
+    });
+    return u;
+  });
+  return { id: updated.id, email: updated.email, full_name: updated.fullName, active: updated.active };
+}
+
+// Generico para cualquier rol: el maestro fija una nueva contrasena a mano (ej. para comunicarsela
+// el mismo al doctor/productor). Vuelve a exigir cambio de contrasena al entrar.
+export async function setUserPassword(actorUserId: string, userId: string, newPassword: string) {
+  const passwordHash = await hashPassword(newPassword);
+  const updated = await prisma.$transaction(async (tx) => {
+    const exists = await tx.user.findUnique({ where: { id: userId }, select: { id: true } });
+    if (!exists) throw new ApiError(404, "not_found");
+    const u = await tx.user.update({ where: { id: userId }, data: { passwordHash, mustChangePassword: true } });
+    await tx.auditLog.create({
+      data: { actorUserId, action: "user.password_reset", entityType: "user", entityId: userId },
     });
     return u;
   });
@@ -328,9 +364,11 @@ export async function listMasters() {
   return { items: users.map(masterView) };
 }
 
-export async function createMaster(actorUserId: string, input: { full_name: string; email: string; super_admin?: boolean }) {
-  const tempPassword = generateTempPassword();
-  const passwordHash = await hashPassword(tempPassword);
+export async function createMaster(
+  actorUserId: string,
+  input: { full_name: string; email: string; super_admin?: boolean; initial_password?: string },
+) {
+  const { passwordHash, tempPasswordToShow } = await resolveInitialPassword(input.initial_password);
   const superAdmin = input.super_admin ?? false;
   const user = await prisma.$transaction(async (tx) => {
     const u = await tx.user.create({
@@ -341,7 +379,7 @@ export async function createMaster(actorUserId: string, input: { full_name: stri
     });
     return u;
   });
-  return { ...masterView(user), temp_password: tempPassword };
+  return { ...masterView(user), temp_password: tempPasswordToShow };
 }
 
 // Promueve o quita el "administrador maestro" (puede crear y administrar otras cuentas de maestro).

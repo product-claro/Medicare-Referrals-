@@ -5,7 +5,12 @@
     "save": "Guardar",
     "cancel": "Cancelar",
     "logout": "Salir",
-    "language": "Idioma"
+    "language": "Idioma",
+    "initial_password_label": "Contrasena inicial (opcional)",
+    "initial_password_hint": "Si la dejas vacia, se genera una automaticamente y se muestra una sola vez. Si escribes una, igual se le pedira cambiarla al entrar (minimo 10 caracteres).",
+    "reset_password": "Restablecer contrasena",
+    "reset_password_prompt": "Nueva contrasena (minimo 10 caracteres):",
+    "reset_password_ok": "Contrasena actualizada."
   },
   "auth": {
     "login_title": "Entrar",

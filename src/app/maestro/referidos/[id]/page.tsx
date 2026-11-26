@@ -45,7 +45,7 @@ export default async function MaestroReferidoDetalle({ params }: { params: { id:
   }
   const [producers, reasons] = await Promise.all([listProducers("true"), loadReasons()]);
 
-  const text: UiText = { m: d.master, status: d.status, producerType: d.producer_type, errors: d.errors };
+  const text: UiText = { m: d.master, common: d.common, status: d.status, producerType: d.producer_type, errors: d.errors };
   const m = d.master;
   const reasonLabel = (c: { label_es: string; label_en: string } | null | undefined) =>
     c ? (locale === "en" ? c.label_en : c.label_es) : null;

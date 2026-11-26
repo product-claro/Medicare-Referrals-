@@ -11,7 +11,7 @@ export default async function ClinicDetail({ params }: { params: { id: string } 
   const s = await requirePageSession(["maestro"]);
   const { d } = i18nFor(s.locale);
   const [clinic, users] = await Promise.all([getClinic(params.id), listClinicUsers(params.id)]);
-  const text: UiText = { m: d.master, status: d.status, producerType: d.producer_type, errors: d.errors };
+  const text: UiText = { m: d.master, common: d.common, status: d.status, producerType: d.producer_type, errors: d.errors };
 
   return (
     <div className="space-y-5">

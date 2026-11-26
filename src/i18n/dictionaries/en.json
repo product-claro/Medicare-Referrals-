@@ -5,7 +5,12 @@
     "save": "Save",
     "cancel": "Cancel",
     "logout": "Sign out",
-    "language": "Language"
+    "language": "Language",
+    "initial_password_label": "Initial password (optional)",
+    "initial_password_hint": "If left blank, one is generated automatically and shown once. If you type one, they'll still be asked to change it on first login (10 characters minimum).",
+    "reset_password": "Reset password",
+    "reset_password_prompt": "New password (10 characters minimum):",
+    "reset_password_ok": "Password updated."
   },
   "auth": {
     "login_title": "Sign in",

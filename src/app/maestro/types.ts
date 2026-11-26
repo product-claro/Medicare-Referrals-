@@ -78,6 +78,7 @@ export interface ProducerImportRow {
 // Textos que los componentes cliente reciben ya resueltos en el servidor (idioma del usuario).
 export interface UiText {
   m: Dictionary["master"];
+  common: Dictionary["common"];
   status: Dictionary["status"];
   producerType: Dictionary["producer_type"];
   errors: Record<string, string>;

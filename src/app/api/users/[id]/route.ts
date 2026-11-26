@@ -3,12 +3,12 @@ import { json, parseId, readJson } from "@/lib/http";
 import { requireSession } from "@/lib/auth/guard";
 import { ApiError } from "@/lib/errors";
 import { updateUserSchema } from "@/lib/referrals/schemas";
-import { setClinicUserAdmin, setMasterSuperAdmin, setUserActive } from "@/lib/directory";
+import { setClinicUserAdmin, setMasterSuperAdmin, setUserActive, setUserPassword } from "@/lib/directory";
 
 export const dynamic = "force-dynamic";
 
-// Activa/desactiva un usuario, y/o cambia su rol secundario: administrador de clinica
-// (ve todo vs. solo lo propio) o administrador maestro (puede crear otros maestros).
+// Activa/desactiva un usuario, cambia su contrasena a mano, y/o cambia su rol secundario:
+// administrador de clinica (ve todo vs. solo lo propio) o administrador maestro (crea otros maestros).
 export async function PATCH(req: Request, { params }: { params: { id: string } }) {
   try {
     const s = await requireSession(["maestro"]);
@@ -19,6 +19,7 @@ export async function PATCH(req: Request, { params }: { params: { id: string } }
     if (body.active !== undefined) result = await setUserActive(s.userId, id, body.active);
     if (body.clinic_admin !== undefined) result = await setClinicUserAdmin(s.userId, id, body.clinic_admin);
     if (body.super_admin !== undefined) result = await setMasterSuperAdmin(s.userId, id, body.super_admin);
+    if (body.new_password !== undefined) result = await setUserPassword(s.userId, id, body.new_password);
     return json(result);
   } catch (e) {
     return handleError(e);
