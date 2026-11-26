@@ -1,4 +1,8 @@
 import type { Metadata, Viewport } from "next";
+import { AntdRegistry } from "@ant-design/nextjs-registry";
+import { ConfigProvider } from "antd";
+import { TEMA_CLARO_ONE } from "@arc2-0/claro-one-kit";
+import "@arc2-0/claro-one-kit/tokens.css";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -15,7 +19,11 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="es">
-      <body>{children}</body>
+      <body>
+        <AntdRegistry>
+          <ConfigProvider theme={TEMA_CLARO_ONE}>{children}</ConfigProvider>
+        </AntdRegistry>
+      </body>
     </html>
   );
 }
