@@ -261,7 +261,8 @@ export async function createClinicUser(
   return { ...clinicUserView(user), temp_password: tempPassword };
 }
 
-// Generico: activa o desactiva cualquier usuario (lo usa hoy la pantalla de personal de clinica).
+// Generico para cualquier rol: activa o desactiva un usuario. El llamador decide que hacer con la
+// respuesta (hoy ni la pantalla de personal de clinica ni la de maestros la usan, solo el status 200).
 export async function setUserActive(actorUserId: string, userId: string, active: boolean) {
   const updated = await prisma.$transaction(async (tx) => {
     const exists = await tx.user.findUnique({ where: { id: userId }, select: { id: true } });
@@ -272,7 +273,7 @@ export async function setUserActive(actorUserId: string, userId: string, active:
     });
     return u;
   });
-  return clinicUserView(updated);
+  return { id: updated.id, email: updated.email, full_name: updated.fullName, active: updated.active };
 }
 
 // Promueve o quita el "administrador de clinica" (ve todos los referidos vs. solo los propios).
@@ -306,4 +307,53 @@ export async function updateClinic(actorUserId: string, id: string, input: { nam
     return c;
   });
   return clinicView(updated);
+}
+
+// ---------------------------------------------------------------- maestros
+function masterView(u: { id: string; email: string; fullName: string; active: boolean; superAdmin: boolean; mustChangePassword: boolean; lastLoginAt: Date | null }) {
+  return {
+    id: u.id,
+    email: u.email,
+    full_name: u.fullName,
+    active: u.active,
+    super_admin: u.superAdmin,
+    must_change_password: u.mustChangePassword,
+    last_login_at: u.lastLoginAt,
+  };
+}
+
+// Solo lo llama un administrador maestro (validado en la ruta). Lista todas las cuentas de maestro.
+export async function listMasters() {
+  const users = await prisma.user.findMany({ where: { role: "maestro" }, orderBy: { createdAt: "asc" } });
+  return { items: users.map(masterView) };
+}
+
+export async function createMaster(actorUserId: string, input: { full_name: string; email: string; super_admin?: boolean }) {
+  const tempPassword = generateTempPassword();
+  const passwordHash = await hashPassword(tempPassword);
+  const superAdmin = input.super_admin ?? false;
+  const user = await prisma.$transaction(async (tx) => {
+    const u = await tx.user.create({
+      data: { email: input.email, fullName: input.full_name, role: "maestro", superAdmin, passwordHash, mustChangePassword: true },
+    });
+    await tx.auditLog.create({
+      data: { actorUserId, action: "user.created", entityType: "user", entityId: u.id, data: { role: "maestro", super_admin: superAdmin } },
+    });
+    return u;
+  });
+  return { ...masterView(user), temp_password: tempPassword };
+}
+
+// Promueve o quita el "administrador maestro" (puede crear y administrar otras cuentas de maestro).
+export async function setMasterSuperAdmin(actorUserId: string, userId: string, superAdmin: boolean) {
+  const updated = await prisma.$transaction(async (tx) => {
+    const exists = await tx.user.findUnique({ where: { id: userId }, select: { id: true, role: true } });
+    if (!exists || exists.role !== "maestro") throw new ApiError(404, "not_found");
+    const u = await tx.user.update({ where: { id: userId }, data: { superAdmin } });
+    await tx.auditLog.create({
+      data: { actorUserId, action: "user.updated", entityType: "user", entityId: userId, data: { super_admin: superAdmin } },
+    });
+    return u;
+  });
+  return masterView(updated);
 }

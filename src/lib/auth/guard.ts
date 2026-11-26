@@ -11,6 +11,8 @@ export interface AuthSession {
   clinicId: string | null;
   // Solo relevante con role = clinica: true ve todos los referidos de la clinica, false solo los propios.
   clinicAdmin: boolean;
+  // Solo relevante con role = maestro: true puede crear y administrar otras cuentas de maestro.
+  superAdmin: boolean;
   producerId: string | null;
   fullName: string;
   email: string;
@@ -54,6 +56,7 @@ export async function getSession(): Promise<AuthSession | null> {
     role: u.role,
     clinicId: u.clinicId,
     clinicAdmin: u.clinicAdmin,
+    superAdmin: u.superAdmin,
     producerId: u.producerId,
     fullName: u.fullName,
     email: u.email,

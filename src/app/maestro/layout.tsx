@@ -43,6 +43,11 @@ export default async function MaestroLayout({ children }: { children: React.Reac
           <Link href="/maestro/clinicas" className={linkCls}>
             {d.master.nav.clinics}
           </Link>
+          {s.superAdmin && (
+            <Link href="/maestro/maestros" className={linkCls}>
+              {d.master.nav.masters}
+            </Link>
+          )}
         </nav>
       </header>
       <main className="flex-1 px-4 py-5">{children}</main>

@@ -195,6 +195,11 @@ export const createClinicUserSchema = z
   .strict();
 
 export const updateUserSchema = z
-  .object({ active: z.boolean().optional(), clinic_admin: z.boolean().optional() })
+  .object({ active: z.boolean().optional(), clinic_admin: z.boolean().optional(), super_admin: z.boolean().optional() })
   .strict()
   .refine((v) => Object.keys(v).length > 0, { message: "empty_update", path: ["_"] });
+
+// ---------- Cuentas de maestro (solo las crea/administra un administrador maestro) ----------
+export const createMasterSchema = z
+  .object({ full_name: personName, email, super_admin: z.boolean().optional() })
+  .strict();

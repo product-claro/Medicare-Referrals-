@@ -138,7 +138,8 @@
       "referrals": "Referidos",
       "metrics": "Metricas",
       "producers": "Productores",
-      "clinics": "Clinicas"
+      "clinics": "Clinicas",
+      "masters": "Maestros"
     },
     "wait": {
       "minutes": "{n} min",
@@ -365,6 +366,34 @@
       "role_staff": "Personal",
       "make_admin": "Hacer administrador",
       "remove_admin": "Quitar administrador"
+    },
+    "masters": {
+      "title": "Maestros",
+      "subtitle": "Solo un administrador maestro puede crear y administrar otras cuentas de maestro.",
+      "form_title": "Nuevo maestro",
+      "full_name": "Nombre completo",
+      "email": "Correo",
+      "super_admin_label": "Administrador maestro",
+      "super_admin_hint": "Puede crear y administrar otras cuentas de maestro. Si lo dejas sin marcar, este maestro tiene acceso normal a todo lo demas.",
+      "submit": "Crear maestro",
+      "submitting": "Creando...",
+      "created_ok": "Maestro creado.",
+      "temp_password_note": "Contrasena temporal de {email}: {password} (se muestra una sola vez; cambiala al entrar).",
+      "list_title": "Maestros existentes",
+      "col_name": "Nombre",
+      "col_email": "Correo",
+      "col_role": "Rol",
+      "col_status": "Estado",
+      "col_actions": "Acciones",
+      "role_super_admin": "Administrador maestro",
+      "role_normal": "Maestro",
+      "active": "Activo",
+      "inactive": "Inactivo",
+      "deactivate": "Desactivar",
+      "activate": "Activar",
+      "make_super_admin": "Hacer administrador maestro",
+      "remove_super_admin": "Quitar administrador maestro",
+      "empty": "Aun no hay otros maestros."
     }
   },
   "producer": {

@@ -138,7 +138,8 @@
       "referrals": "Referrals",
       "metrics": "Metrics",
       "producers": "Producers",
-      "clinics": "Clinics"
+      "clinics": "Clinics",
+      "masters": "Masters"
     },
     "wait": {
       "minutes": "{n} min",
@@ -365,6 +366,34 @@
       "role_staff": "Staff",
       "make_admin": "Make administrator",
       "remove_admin": "Remove administrator"
+    },
+    "masters": {
+      "title": "Masters",
+      "subtitle": "Only a master administrator can create and manage other master accounts.",
+      "form_title": "New master",
+      "full_name": "Full name",
+      "email": "Email",
+      "super_admin_label": "Master administrator",
+      "super_admin_hint": "Can create and manage other master accounts. If left unchecked, this master has normal access to everything else.",
+      "submit": "Create master",
+      "submitting": "Creating...",
+      "created_ok": "Master created.",
+      "temp_password_note": "Temporary password for {email}: {password} (shown only once; change it on first login).",
+      "list_title": "Existing masters",
+      "col_name": "Name",
+      "col_email": "Email",
+      "col_role": "Role",
+      "col_status": "Status",
+      "col_actions": "Actions",
+      "role_super_admin": "Master administrator",
+      "role_normal": "Master",
+      "active": "Active",
+      "inactive": "Inactive",
+      "deactivate": "Deactivate",
+      "activate": "Activate",
+      "make_super_admin": "Make master administrator",
+      "remove_super_admin": "Remove master administrator",
+      "empty": "No other masters yet."
     }
   },
   "producer": {

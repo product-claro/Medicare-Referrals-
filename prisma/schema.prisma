@@ -103,6 +103,8 @@ model User {
   passwordHash       String    @map("password_hash")
   fullName           String    @map("full_name")
   role               UserRole
+  // Solo tiene sentido con role = maestro: puede crear y administrar otras cuentas de maestro.
+  superAdmin         Boolean   @default(false) @map("super_admin")
   clinicId           String?   @map("clinic_id") @db.Uuid
   // Solo tiene sentido con role = clinica. true: ve todos los referidos de la clinica (la "clinica" como
   // tal). false: solo ve los referidos que el mismo registro (personal individual, ej. un doctor).
