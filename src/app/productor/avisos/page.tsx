@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 // esta vista conserva el resaltado de los que llegaron sin leer.
 export default async function AvisosPage() {
   const s = await requirePageSession(["productor"]);
-  const { locale, d, tr } = i18nFor(s.locale);
+  const { locale, d, tr } = await i18nFor(s.locale);
   const { items, unread } = await listNotifications(s);
   if (unread > 0) await markAllRead(s);
   const n = d.notifications;

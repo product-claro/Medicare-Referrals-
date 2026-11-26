@@ -13,13 +13,14 @@ export const dynamic = "force-dynamic";
 const PAGE_SIZE = 20;
 
 // Criterio UI 3: vista de resultado para la clinica. Solo ve los referidos de su clinica (scope.ts).
-export default async function ReferidosPage({
-  searchParams,
-}: {
-  searchParams: { status?: string; page?: string };
-}) {
+export default async function ReferidosPage(
+  props: {
+    searchParams: Promise<{ status?: string; page?: string }>;
+  }
+) {
+  const searchParams = await props.searchParams;
   const s = await requirePageSession(["clinica"]);
-  const { locale, d, tr } = i18nFor(s.locale);
+  const { locale, d, tr } = await i18nFor(s.locale);
 
   const status = (ALL_STATUSES as readonly string[]).includes(searchParams.status ?? "")
     ? (searchParams.status as (typeof ALL_STATUSES)[number])

@@ -14,9 +14,10 @@ import type { ProducerReferral } from "../../types";
 export const dynamic = "force-dynamic";
 
 // Trabajar el referido. El alcance (producer_id propio) lo aplica scope.ts: uno ajeno responde 404.
-export default async function ProductorReferidoDetalle({ params }: { params: { id: string } }) {
+export default async function ProductorReferidoDetalle(props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const s = await requirePageSession(["productor"]);
-  const { locale, d, tr } = i18nFor(s.locale);
+  const { locale, d, tr } = await i18nFor(s.locale);
 
   let r: ProducerReferral;
   try {

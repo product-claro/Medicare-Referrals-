@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 // Idempotente: revoca la sesion de la cookie (si es valida) y siempre borra la cookie.
 export async function POST(req: Request) {
   try {
-    const payload = await verifySessionToken(cookies().get(SESSION_COOKIE)?.value);
+    const payload = await verifySessionToken((await cookies()).get(SESSION_COOKIE)?.value);
     if (payload) {
       const r = await prisma.session.updateMany({
         where: { id: payload.sid, userId: payload.uid, revokedAt: null },

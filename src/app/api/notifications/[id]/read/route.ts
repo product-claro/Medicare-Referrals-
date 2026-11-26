@@ -5,7 +5,8 @@ import { markRead } from "@/lib/notifications";
 
 export const dynamic = "force-dynamic";
 
-export async function POST(_req: Request, { params }: { params: { id: string } }) {
+export async function POST(_req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const s = await requireSession(["productor"]);
     return json(await markRead(s, parseId(params.id)));

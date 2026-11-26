@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 
 export default async function ProductorLayout({ children }: { children: React.ReactNode }) {
   const s = await requirePageSession(["productor"]);
-  const { locale, d } = i18nFor(s.locale);
+  const { locale, d } = await i18nFor(s.locale);
   const unread = await unreadCount(s);
   const linkCls =
     "flex min-h-touch flex-1 items-center justify-center rounded-lg border border-slate-200 text-base font-medium hover:bg-brand-50";

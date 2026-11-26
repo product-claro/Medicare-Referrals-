@@ -9,7 +9,7 @@ export const dynamic = "force-dynamic";
 
 export default async function ClinicaLayout({ children }: { children: React.ReactNode }) {
   const s = await requirePageSession(["clinica"]);
-  const { locale, d } = i18nFor(s.locale);
+  const { locale, d } = await i18nFor(s.locale);
   const clinic = s.clinicId
     ? await prisma.clinic.findUnique({ where: { id: s.clinicId }, select: { name: true } })
     : null;

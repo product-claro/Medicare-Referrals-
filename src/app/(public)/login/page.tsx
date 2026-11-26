@@ -11,10 +11,10 @@ export const dynamic = "force-dynamic";
 
 const dictionaries = { es, en };
 
-function pickLocale(): Locale {
-  const c = cookies().get("lang")?.value;
+async function pickLocale(): Promise<Locale> {
+  const c = (await cookies()).get("lang")?.value;
   if (isLocale(c)) return c;
-  const al = headers().get("accept-language")?.toLowerCase() ?? "";
+  const al = (await headers()).get("accept-language")?.toLowerCase() ?? "";
   for (const part of al.split(",")) {
     const tag = part.trim().slice(0, 2);
     if (isLocale(tag)) return tag;
@@ -26,7 +26,7 @@ export default async function LoginPage() {
   const session = await getSession();
   if (session) redirect(session.mustChangePassword ? "/cambiar-clave" : ROLE_HOME[session.role]);
 
-  const locale = pickLocale();
+  const locale = await pickLocale();
   const d = dictionaries[locale];
   const labels = {
     appName: d.common.app_name,

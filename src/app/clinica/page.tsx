@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 // Criterio UI 1: registrar un paciente en menos de 1 minuto desde el telefono. Solo 3 campos.
 export default async function ClinicaHome() {
   const s = await requirePageSession(["clinica"]);
-  const { d } = i18nFor(s.locale);
+  const { d } = await i18nFor(s.locale);
   const f = d.clinic.form;
   return (
     <ReferralForm

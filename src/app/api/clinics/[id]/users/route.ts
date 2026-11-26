@@ -7,7 +7,8 @@ import { createClinicUser, listClinicUsers } from "@/lib/directory";
 export const dynamic = "force-dynamic";
 
 // Personal de una clinica: varias personas pueden tener su propio login y ven el mismo pool de referidos.
-export async function GET(_req: Request, { params }: { params: { id: string } }) {
+export async function GET(_req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     await requireSession(["maestro"]);
     const id = parseId(params.id);
@@ -18,7 +19,8 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
 }
 
 // Crea un usuario de acceso para una clinica ya existente (contrasena temporal, se muestra una sola vez).
-export async function POST(req: Request, { params }: { params: { id: string } }) {
+export async function POST(req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const s = await requireSession(["maestro"]);
     const id = parseId(params.id);

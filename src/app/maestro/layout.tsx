@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 
 export default async function MaestroLayout({ children }: { children: React.ReactNode }) {
   const s = await requirePageSession(["maestro"]);
-  const { locale, d } = i18nFor(s.locale);
+  const { locale, d } = await i18nFor(s.locale);
   const linkCls =
     "flex min-h-touch items-center justify-center rounded-lg border border-slate-200 px-4 text-base font-medium hover:bg-brand-50";
   return (

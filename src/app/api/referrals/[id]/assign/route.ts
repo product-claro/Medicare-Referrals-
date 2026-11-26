@@ -7,7 +7,8 @@ import { assignReferral } from "@/lib/referrals/service";
 export const dynamic = "force-dynamic";
 
 // Asignacion manual a un productor individual activo. Si ya no esta 'nuevo' -> 409 already_assigned.
-export async function POST(req: Request, { params }: { params: { id: string } }) {
+export async function POST(req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const s = await requireSession(["maestro"]);
     const id = parseId(params.id);

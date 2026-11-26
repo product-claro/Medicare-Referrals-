@@ -11,7 +11,7 @@ export const dynamic = "force-dynamic";
 // Criterio UI 2: bandeja unica de referidos sin asignar de todas las clinicas, mas antiguos primero.
 export default async function MaestroHome() {
   const s = await requirePageSession(["maestro"]);
-  const { locale, d } = i18nFor(s.locale);
+  const { locale, d } = await i18nFor(s.locale);
   const [unassigned, producers] = await Promise.all([listUnassigned(s), listProducers("true")]);
 
   const text: UiText = { m: d.master, common: d.common, status: d.status, producerType: d.producer_type, errors: d.errors };

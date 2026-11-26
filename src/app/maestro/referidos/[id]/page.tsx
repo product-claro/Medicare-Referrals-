@@ -28,9 +28,10 @@ interface Detail extends MasterReferral {
 }
 
 // Detalle completo con linea de tiempo de auditoria y reasignacion.
-export default async function MaestroReferidoDetalle({ params }: { params: { id: string } }) {
+export default async function MaestroReferidoDetalle(props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const s = await requirePageSession(["maestro"]);
-  const { locale, d, tr } = i18nFor(s.locale);
+  const { locale, d, tr } = await i18nFor(s.locale);
   const tz = appTimezone();
 
   let r: Detail;

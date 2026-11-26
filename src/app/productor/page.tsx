@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 // Mis referidos asignados: activos primero (asignado, sin contacto, contactado), luego los cerrados.
 export default async function ProductorHome() {
   const s = await requirePageSession(["productor"]);
-  const { locale, d, tr } = i18nFor(s.locale);
+  const { locale, d, tr } = await i18nFor(s.locale);
   const res = await listMyReferrals(s);
   const items = res.items as unknown as ProducerReferral[];
   const active = items.filter((r) => !isFinal(r.status));

@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 
 export default async function MaestroMaestros() {
   const s = await requirePageSession(["maestro"]);
-  const { d } = i18nFor(s.locale);
+  const { d } = await i18nFor(s.locale);
 
   if (!s.superAdmin) {
     // Un maestro normal no tiene permiso para esta pantalla.

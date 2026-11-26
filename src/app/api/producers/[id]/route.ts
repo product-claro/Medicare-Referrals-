@@ -7,7 +7,8 @@ import { updateProducer } from "@/lib/directory";
 export const dynamic = "force-dynamic";
 
 // Edita datos o desactiva (active=false). Un productor inactivo no recibe asignaciones.
-export async function PATCH(req: Request, { params }: { params: { id: string } }) {
+export async function PATCH(req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const s = await requireSession(["maestro"]);
     const id = parseId(params.id);

@@ -45,9 +45,10 @@ const thNum = `${th} text-right`;
 const td = "px-3 py-2 text-sm";
 const tdNum = `${td} text-right tabular-nums`;
 
-export default async function MaestroMetricas({ searchParams }: { searchParams: { from?: string; to?: string } }) {
+export default async function MaestroMetricas(props: { searchParams: Promise<{ from?: string; to?: string }> }) {
+  const searchParams = await props.searchParams;
   const s = await requirePageSession(["maestro"]);
-  const { d, tr } = i18nFor(s.locale);
+  const { d, tr } = await i18nFor(s.locale);
   const mm = d.master.metrics;
 
   let from = searchParams.from && isValidYmd(searchParams.from) ? searchParams.from : undefined;

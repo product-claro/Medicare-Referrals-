@@ -7,9 +7,10 @@ import type { ClinicUserRow, UiText } from "../../types";
 
 export const dynamic = "force-dynamic";
 
-export default async function ClinicDetail({ params }: { params: { id: string } }) {
+export default async function ClinicDetail(props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const s = await requirePageSession(["maestro"]);
-  const { d } = i18nFor(s.locale);
+  const { d } = await i18nFor(s.locale);
   const [clinic, users] = await Promise.all([getClinic(params.id), listClinicUsers(params.id)]);
   const text: UiText = { m: d.master, common: d.common, status: d.status, producerType: d.producer_type, errors: d.errors };
 

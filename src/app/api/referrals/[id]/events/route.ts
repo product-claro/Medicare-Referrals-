@@ -6,7 +6,8 @@ import { listEvents } from "@/lib/referrals/service";
 export const dynamic = "force-dynamic";
 
 // Linea de tiempo de auditoria (quien creo, asigno, contacto y cerro, y cuando).
-export async function GET(_req: Request, { params }: { params: { id: string } }) {
+export async function GET(_req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const s = await requireSession(["maestro"]);
     return json(await listEvents(s, parseId(params.id)));

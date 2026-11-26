@@ -6,7 +6,8 @@ import { reassignReferral } from "@/lib/referrals/service";
 
 export const dynamic = "force-dynamic";
 
-export async function POST(req: Request, { params }: { params: { id: string } }) {
+export async function POST(req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const s = await requireSession(["maestro"]);
     const id = parseId(params.id);

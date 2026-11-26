@@ -9,7 +9,8 @@ export const dynamic = "force-dynamic";
 
 // Activa/desactiva un usuario, cambia su contrasena a mano, y/o cambia su rol secundario:
 // administrador de clinica (ve todo vs. solo lo propio) o administrador maestro (crea otros maestros).
-export async function PATCH(req: Request, { params }: { params: { id: string } }) {
+export async function PATCH(req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const s = await requireSession(["maestro"]);
     const id = parseId(params.id);

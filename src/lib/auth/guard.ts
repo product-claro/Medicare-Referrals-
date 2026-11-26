@@ -24,7 +24,7 @@ const TOUCH_INTERVAL_MS = 60_000;
 
 // Autorizacion real: valida la cookie Y la fila en sessions/users. Devuelve null si algo falla.
 export async function getSession(): Promise<AuthSession | null> {
-  const token = cookies().get(SESSION_COOKIE)?.value;
+  const token = (await cookies()).get(SESSION_COOKIE)?.value;
   const payload = await verifySessionToken(token);
   if (!payload) return null;
 

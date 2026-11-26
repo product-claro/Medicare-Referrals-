@@ -7,11 +7,11 @@ import { t, type Dictionary } from "./t";
 // Solo servidor. Orden: cookie lang -> users.locale (si hay sesion) -> Accept-Language -> es.
 const dictionaries: Record<Locale, Dictionary> = { es, en };
 
-export function getLocale(sessionLocale?: Locale | null): Locale {
-  const c = cookies().get("lang")?.value;
+export async function getLocale(sessionLocale?: Locale | null): Promise<Locale> {
+  const c = (await cookies()).get("lang")?.value;
   if (isLocale(c)) return c;
   if (sessionLocale && isLocale(sessionLocale)) return sessionLocale;
-  const al = headers().get("accept-language")?.toLowerCase() ?? "";
+  const al = (await headers()).get("accept-language")?.toLowerCase() ?? "";
   for (const part of al.split(",")) {
     const tag = part.trim().slice(0, 2);
     if (isLocale(tag)) return tag;
@@ -23,9 +23,9 @@ export function getDictionary(locale: Locale): Dictionary {
   return dictionaries[locale];
 }
 
-/** Helper listo para usar en componentes de servidor: const { locale, d, tr } = ... */
-export function i18nFor(sessionLocale?: Locale | null) {
-  const locale = getLocale(sessionLocale);
+/** Helper listo para usar en componentes de servidor: const { locale, d, tr } = await i18nFor(...) */
+export async function i18nFor(sessionLocale?: Locale | null) {
+  const locale = await getLocale(sessionLocale);
   const d = getDictionary(locale);
   return { locale, d, tr: (key: Parameters<typeof t>[1], vars?: Record<string, string | number>) => t(d, key, vars) };
 }

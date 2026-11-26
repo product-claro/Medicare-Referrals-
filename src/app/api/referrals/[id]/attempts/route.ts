@@ -7,7 +7,8 @@ import { registerAttempt } from "@/lib/referrals/service";
 export const dynamic = "force-dynamic";
 
 // Productor asignado (alcance por producer_id; ajeno -> 404) o maestro en su nombre.
-export async function POST(req: Request, { params }: { params: { id: string } }) {
+export async function POST(req: Request, props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   try {
     const s = await requireSession(["productor", "maestro"]);
     const id = parseId(params.id);

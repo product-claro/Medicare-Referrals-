@@ -17,9 +17,10 @@ type SP = { status?: string; clinic_id?: string; producer_id?: string; from?: st
 
 // Todos los referidos de todas las clinicas. Los filtros son no sensibles (van en la URL);
 // la busqueda por nombre/telefono se hace por POST desde el componente cliente.
-export default async function MaestroReferidos({ searchParams }: { searchParams: SP }) {
+export default async function MaestroReferidos(props: { searchParams: Promise<SP> }) {
+  const searchParams = await props.searchParams;
   const s = await requirePageSession(["maestro"]);
-  const { locale, d, tr } = i18nFor(s.locale);
+  const { locale, d, tr } = await i18nFor(s.locale);
 
   const status = (ALL_STATUSES as readonly string[]).includes(searchParams.status ?? "")
     ? (searchParams.status as (typeof ALL_STATUSES)[number])

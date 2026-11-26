@@ -12,9 +12,10 @@ import type { ClinicReferral } from "../../types";
 export const dynamic = "force-dynamic";
 
 // Detalle de un referido propio. Si es de otra clinica o no existe: 404 (no se revela su existencia).
-export default async function ReferidoDetalle({ params }: { params: { id: string } }) {
+export default async function ReferidoDetalle(props: { params: Promise<{ id: string }> }) {
+  const params = await props.params;
   const s = await requirePageSession(["clinica"]);
-  const { locale, d, tr } = i18nFor(s.locale);
+  const { locale, d, tr } = await i18nFor(s.locale);
 
   let r: ClinicReferral;
   try {

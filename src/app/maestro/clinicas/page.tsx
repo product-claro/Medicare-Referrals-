@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 
 export default async function MaestroClinicas() {
   const s = await requirePageSession(["maestro"]);
-  const { d } = i18nFor(s.locale);
+  const { d } = await i18nFor(s.locale);
   const clinics = await listClinics("all");
   const text: UiText = { m: d.master, common: d.common, status: d.status, producerType: d.producer_type, errors: d.errors };
 
