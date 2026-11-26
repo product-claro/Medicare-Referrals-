@@ -1,0 +1,265 @@
+// Referidos de clinicas para Medicare - MVP
+//
+// IMPORTANTE: Prisma no modela CHECK, triggers, funciones, vistas, indices parciales
+// ni indices sobre expresiones (lower(name)). Todo eso, mas el catalogo close_reasons,
+// la FK compuesta referrals(close_reason_code, status) -> close_reasons(code, applies_to)
+// y las columnas IDENTITY, va en la migracion init completada a mano (ver README).
+//
+// CUMPLIMIENTO: no existe ninguna columna para MBI (Medicare) ni Medicaid.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider  = "postgresql"
+  // DATABASE_URL: conexion agrupada (pooler de Supabase, puerto 6543, con ?pgbouncer=true) para runtime.
+  // DIRECT_URL: conexion directa (puerto 5432) que Prisma usa solo para migrate/introspect (pgbouncer
+  // en modo transaction no soporta prepared statements, que migrate necesita).
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum UserRole {
+  clinica
+  maestro
+  productor
+
+  @@map("user_role")
+}
+
+enum AppLocale {
+  es
+  en
+
+  @@map("app_locale")
+}
+
+enum ProducerType {
+  dependiente
+  independiente
+
+  @@map("producer_type")
+}
+
+enum ReferralStatus {
+  nuevo
+  asignado
+  contactado
+  sin_contacto
+  inscrito
+  no_inscrito
+
+  @@map("referral_status")
+}
+
+enum ReferralEventType {
+  creado
+  asignado
+  reasignado
+  contactado
+  sin_contacto
+  inscrito
+  no_inscrito
+  actualizado
+
+  @@map("referral_event_type")
+}
+
+model Clinic {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  users     User[]
+  referrals Referral[]
+
+  @@map("clinics")
+}
+
+model Producer {
+  id           String       @id @default(uuid()) @db.Uuid
+  fullName     String       @map("full_name")
+  producerType ProducerType @map("producer_type")
+  npn          String?      @unique
+  phone        String?
+  active       Boolean      @default(true)
+  createdAt    DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime     @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  user                User?
+  referrals           Referral[]
+  eventsFromProducer  ReferralEvent[] @relation("EventFromProducer")
+  eventsToProducer    ReferralEvent[] @relation("EventToProducer")
+
+  @@map("producers")
+}
+
+model User {
+  id                 String    @id @default(uuid()) @db.Uuid
+  email              String    @unique
+  passwordHash       String    @map("password_hash")
+  fullName           String    @map("full_name")
+  role               UserRole
+  clinicId           String?   @map("clinic_id") @db.Uuid
+  producerId         String?   @unique @map("producer_id") @db.Uuid
+  locale             AppLocale @default(es)
+  active             Boolean   @default(true)
+  mustChangePassword Boolean   @default(true) @map("must_change_password")
+  failedLoginCount   Int       @default(0) @map("failed_login_count")
+  lockedUntil        DateTime? @map("locked_until") @db.Timestamptz(6)
+  lastLoginAt        DateTime? @map("last_login_at") @db.Timestamptz(6)
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  clinic     Clinic?   @relation(fields: [clinicId], references: [id])
+  producer   Producer? @relation(fields: [producerId], references: [id])
+  sessions   Session[]
+  notifications Notification[]
+  auditLogs  AuditLog[]
+
+  referralsCreated  Referral[]      @relation("ReferralCreatedBy")
+  referralsAssigned Referral[]      @relation("ReferralAssignedBy")
+  referralsClosed   Referral[]      @relation("ReferralClosedBy")
+  referralEvents    ReferralEvent[]
+
+  @@index([clinicId], map: "ix_users_clinic")
+  @@map("users")
+}
+
+model Session {
+  id         String    @id @default(uuid()) @db.Uuid
+  userId     String    @map("user_id") @db.Uuid
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  expiresAt  DateTime  @map("expires_at") @db.Timestamptz(6)
+  lastSeenAt DateTime  @default(now()) @map("last_seen_at") @db.Timestamptz(6)
+  revokedAt  DateTime? @map("revoked_at") @db.Timestamptz(6)
+  userAgent  String?   @map("user_agent")
+  ip         String?   @db.Inet
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId], map: "ix_sessions_user_active")
+  @@map("sessions")
+}
+
+model CloseReason {
+  code           String         @id
+  appliesTo      ReferralStatus @map("applies_to")
+  labelEs        String         @map("label_es")
+  labelEn        String         @map("label_en")
+  requiresDetail Boolean        @default(false) @map("requires_detail")
+  sortOrder      Int            @default(100) @map("sort_order")
+  active         Boolean        @default(true)
+
+  events ReferralEvent[]
+
+  @@unique([code, appliesTo], map: "ux_close_reasons_code_state")
+  @@map("close_reasons")
+}
+
+model Referral {
+  id                 String         @id @default(uuid()) @db.Uuid
+  refNumber          BigInt         @unique @default(autoincrement()) @map("ref_number") // IDENTITY en la migracion
+  clinicId           String         @map("clinic_id") @db.Uuid
+  firstName          String         @map("first_name")
+  lastName           String         @map("last_name")
+  phone              String // E.164
+  status             ReferralStatus @default(nuevo)
+  producerId         String?        @map("producer_id") @db.Uuid
+  contactAttempts    Int            @default(0) @map("contact_attempts")
+
+  // Cierre (la FK compuesta con close_reasons vive en la migracion SQL)
+  closeReasonCode   String?   @map("close_reason_code")
+  closeReasonDetail String?   @map("close_reason_detail")
+  planName          String?   @map("plan_name")
+  enrollmentDate    DateTime? @map("enrollment_date") @db.Date
+  effectiveDate     DateTime? @map("effective_date") @db.Date
+
+  // Auditoria denormalizada (la rellenan los triggers; la app tambien las envia)
+  createdByUserId  String    @map("created_by_user_id") @db.Uuid
+  createdAt        DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  assignedByUserId String?   @map("assigned_by_user_id") @db.Uuid
+  assignedAt       DateTime? @map("assigned_at") @db.Timestamptz(6)
+  closedByUserId   String?   @map("closed_by_user_id") @db.Uuid
+  closedAt         DateTime? @map("closed_at") @db.Timestamptz(6)
+  updatedAt        DateTime  @default(now()) @map("updated_at") @db.Timestamptz(6)
+  version          Int       @default(1)
+
+  clinic     Clinic    @relation(fields: [clinicId], references: [id])
+  producer   Producer? @relation(fields: [producerId], references: [id])
+  createdBy  User      @relation("ReferralCreatedBy", fields: [createdByUserId], references: [id])
+  assignedBy User?     @relation("ReferralAssignedBy", fields: [assignedByUserId], references: [id])
+  closedBy   User?     @relation("ReferralClosedBy", fields: [closedByUserId], references: [id])
+
+  events        ReferralEvent[]
+  notifications Notification[]
+
+  @@index([clinicId, createdAt(sort: Desc)], map: "ix_referrals_clinic_created")
+  @@index([producerId, status], map: "ix_referrals_producer_status")
+  @@index([status], map: "ix_referrals_status")
+  @@index([createdAt], map: "ix_referrals_created_at")
+  @@map("referrals")
+}
+
+model ReferralEvent {
+  id              BigInt            @id @default(autoincrement())
+  referralId      String            @map("referral_id") @db.Uuid
+  eventType       ReferralEventType @map("event_type")
+  actorUserId     String            @map("actor_user_id") @db.Uuid
+  actorRole       UserRole          @map("actor_role")
+  fromStatus      ReferralStatus?   @map("from_status")
+  toStatus        ReferralStatus    @map("to_status")
+  fromProducerId  String?           @map("from_producer_id") @db.Uuid
+  toProducerId    String?           @map("to_producer_id") @db.Uuid
+  closeReasonCode String?           @map("close_reason_code")
+  detail          String?
+  data            Json              @default("{}")
+  occurredAt      DateTime          @default(now()) @map("occurred_at") @db.Timestamptz(6)
+
+  referral     Referral     @relation(fields: [referralId], references: [id], onDelete: Restrict)
+  actor        User         @relation(fields: [actorUserId], references: [id])
+  fromProducer Producer?    @relation("EventFromProducer", fields: [fromProducerId], references: [id])
+  toProducer   Producer?    @relation("EventToProducer", fields: [toProducerId], references: [id])
+  closeReason  CloseReason? @relation(fields: [closeReasonCode], references: [code])
+
+  @@index([referralId, occurredAt], map: "ix_referral_events_referral")
+  @@index([actorUserId, occurredAt], map: "ix_referral_events_actor")
+  @@map("referral_events")
+}
+
+model Notification {
+  id              String    @id @default(uuid()) @db.Uuid
+  recipientUserId String    @map("recipient_user_id") @db.Uuid
+  referralId      String?   @map("referral_id") @db.Uuid
+  kind            String // referral_assigned | referral_unassigned (CHECK en la migracion)
+  params          Json      @default("{}")
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  readAt          DateTime? @map("read_at") @db.Timestamptz(6)
+  emailSentAt     DateTime? @map("email_sent_at") @db.Timestamptz(6)
+  emailError      String?   @map("email_error")
+
+  recipient User      @relation(fields: [recipientUserId], references: [id])
+  referral  Referral? @relation(fields: [referralId], references: [id])
+
+  @@map("notifications")
+}
+
+model AuditLog {
+  id          BigInt   @id @default(autoincrement())
+  actorUserId String?  @map("actor_user_id") @db.Uuid
+  action      String
+  entityType  String?  @map("entity_type")
+  entityId    String?  @map("entity_id") @db.Uuid
+  data        Json     @default("{}")
+  ip          String?  @db.Inet
+  occurredAt  DateTime @default(now()) @map("occurred_at") @db.Timestamptz(6)
+
+  actor User? @relation(fields: [actorUserId], references: [id])
+
+  @@index([occurredAt(sort: Desc)], map: "ix_audit_log_occurred")
+  @@index([entityType, entityId], map: "ix_audit_log_entity")
+  @@map("audit_log")
+}

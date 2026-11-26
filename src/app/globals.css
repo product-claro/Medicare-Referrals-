@@ -1,0 +1,23 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+  body {
+    @apply bg-slate-50 text-slate-900 antialiased;
+  }
+}
+
+@layer components {
+  .input {
+    @apply min-h-touch w-full rounded-lg border border-slate-300 bg-white px-3 text-base
+      focus:border-brand-500 focus:outline-none focus:ring-2 focus:ring-brand-100;
+  }
+  .btn-primary {
+    @apply min-h-touch w-full rounded-lg bg-brand-600 px-4 text-base font-semibold text-white
+      hover:bg-brand-700 disabled:opacity-50;
+  }
+}
