@@ -342,7 +342,22 @@
       "inactive": "Inactive",
       "deactivate": "Deactivate",
       "activate": "Activate",
-      "empty": "No clinics yet."
+      "empty": "No clinics yet.",
+      "open": "View staff",
+      "back_to_list": "Back to clinics",
+      "users_title": "Staff with access",
+      "users_hint": "Several people can have their own account; they all see the same referrals for this clinic.",
+      "users_empty": "This clinic has no users yet.",
+      "user_col_name": "Name",
+      "user_col_email": "Email",
+      "user_col_status": "Status",
+      "user_col_actions": "Actions",
+      "add_user_title": "Add user",
+      "user_full_name": "Full name",
+      "user_email": "Email",
+      "user_submit": "Create user",
+      "user_submitting": "Creating...",
+      "user_created_ok": "User created."
     }
   },
   "producer": {

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { fmt, type ClinicRow, type UiText } from "../types";
 
@@ -141,7 +142,11 @@ export function ClinicsAdmin({ initial, text }: Props) {
               <tbody className="divide-y divide-slate-100">
                 {initial.map((row) => (
                   <tr key={row.id}>
-                    <th scope="row" className="px-3 py-2 text-left text-sm font-medium">{row.name}</th>
+                    <th scope="row" className="px-3 py-2 text-left text-sm font-medium">
+                    <Link href={`/maestro/clinicas/${row.id}`} className="text-brand-700 underline hover:no-underline">
+                      {row.name}
+                    </Link>
+                  </th>
                     <td className="px-3 py-2 text-right text-sm tabular-nums">{row.users_count ?? 0}</td>
                     <td className="px-3 py-2 text-right text-sm tabular-nums">{row.referrals_count ?? 0}</td>
                     <td className="px-3 py-2 text-sm">

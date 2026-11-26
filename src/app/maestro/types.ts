@@ -45,6 +45,15 @@ export interface ClinicRow {
   referrals_count?: number;
 }
 
+export interface ClinicUserRow {
+  id: string;
+  email: string;
+  full_name: string;
+  active: boolean;
+  must_change_password: boolean;
+  last_login_at: string | null;
+}
+
 export interface ProducerImportRow {
   row: number;
   status: "created" | "error";

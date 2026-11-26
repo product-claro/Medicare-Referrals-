@@ -188,6 +188,69 @@ export async function createClinic(actorUserId: string, input: { name: string; e
   return { ...clinicView(clinic), user: u && { id: u.id, email: u.email, temp_password: tempPassword } };
 }
 
+export async function getClinic(id: string) {
+  const clinic = await prisma.clinic.findUnique({
+    where: { id },
+    include: { _count: { select: { users: true, referrals: true } } },
+  });
+  if (!clinic) throw new ApiError(404, "not_found");
+  return clinicView(clinic);
+}
+
+function clinicUserView(u: { id: string; email: string; fullName: string; active: boolean; mustChangePassword: boolean; lastLoginAt: Date | null }) {
+  return {
+    id: u.id,
+    email: u.email,
+    full_name: u.fullName,
+    active: u.active,
+    must_change_password: u.mustChangePassword,
+    last_login_at: u.lastLoginAt,
+  };
+}
+
+// Personal de una clinica: varias personas pueden tener su propio login, todas ven los mismos
+// referidos de la clinica (el alcance es por clinic_id, no por usuario individual).
+export async function listClinicUsers(clinicId: string) {
+  const clinic = await prisma.clinic.findUnique({ where: { id: clinicId }, select: { id: true } });
+  if (!clinic) throw new ApiError(404, "not_found");
+  const users = await prisma.user.findMany({
+    where: { clinicId, role: "clinica" },
+    orderBy: { createdAt: "asc" },
+  });
+  return { items: users.map(clinicUserView) };
+}
+
+export async function createClinicUser(actorUserId: string, clinicId: string, input: { full_name: string; email: string }) {
+  const clinic = await prisma.clinic.findUnique({ where: { id: clinicId }, select: { id: true } });
+  if (!clinic) throw new ApiError(404, "not_found");
+  const tempPassword = generateTempPassword();
+  const passwordHash = await hashPassword(tempPassword);
+  const user = await prisma.$transaction(async (tx) => {
+    const u = await tx.user.create({
+      data: { email: input.email, fullName: input.full_name, role: "clinica", clinicId, passwordHash, mustChangePassword: true },
+    });
+    await tx.auditLog.create({
+      data: { actorUserId, action: "user.created", entityType: "user", entityId: u.id, data: { role: "clinica", clinic_id: clinicId } },
+    });
+    return u;
+  });
+  return { ...clinicUserView(user), temp_password: tempPassword };
+}
+
+// Generico: activa o desactiva cualquier usuario (lo usa hoy la pantalla de personal de clinica).
+export async function setUserActive(actorUserId: string, userId: string, active: boolean) {
+  const updated = await prisma.$transaction(async (tx) => {
+    const exists = await tx.user.findUnique({ where: { id: userId }, select: { id: true } });
+    if (!exists) throw new ApiError(404, "not_found");
+    const u = await tx.user.update({ where: { id: userId }, data: { active } });
+    await tx.auditLog.create({
+      data: { actorUserId, action: active ? "user.activated" : "user.deactivated", entityType: "user", entityId: userId },
+    });
+    return u;
+  });
+  return clinicUserView(updated);
+}
+
 export async function updateClinic(actorUserId: string, id: string, input: { name?: string; active?: boolean }) {
   const updated = await prisma.$transaction(async (tx) => {
     const exists = await tx.clinic.findUnique({ where: { id }, select: { id: true } });

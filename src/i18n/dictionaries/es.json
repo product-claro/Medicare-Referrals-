@@ -342,7 +342,22 @@
       "inactive": "Inactiva",
       "deactivate": "Desactivar",
       "activate": "Activar",
-      "empty": "Aun no hay clinicas."
+      "empty": "Aun no hay clinicas.",
+      "open": "Ver personal",
+      "back_to_list": "Volver a clinicas",
+      "users_title": "Personal con acceso",
+      "users_hint": "Varias personas pueden tener su propio usuario; todas ven los mismos referidos de esta clinica.",
+      "users_empty": "Esta clinica aun no tiene usuarios.",
+      "user_col_name": "Nombre",
+      "user_col_email": "Correo",
+      "user_col_status": "Estado",
+      "user_col_actions": "Acciones",
+      "add_user_title": "Agregar usuario",
+      "user_full_name": "Nombre completo",
+      "user_email": "Correo",
+      "user_submit": "Crear usuario",
+      "user_submitting": "Creando...",
+      "user_created_ok": "Usuario creado."
     }
   },
   "producer": {
