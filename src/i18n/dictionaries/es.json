@@ -350,14 +350,21 @@
       "users_empty": "Esta clinica aun no tiene usuarios.",
       "user_col_name": "Nombre",
       "user_col_email": "Correo",
+      "user_col_role": "Rol",
       "user_col_status": "Estado",
       "user_col_actions": "Acciones",
       "add_user_title": "Agregar usuario",
       "user_full_name": "Nombre completo",
       "user_email": "Correo",
+      "user_clinic_admin_label": "Administrador de la clinica",
+      "user_clinic_admin_hint": "Ve todos los referidos de la clinica. Si lo dejas sin marcar, esta persona solo vera los referidos que ella misma registre.",
       "user_submit": "Crear usuario",
       "user_submitting": "Creando...",
-      "user_created_ok": "Usuario creado."
+      "user_created_ok": "Usuario creado.",
+      "role_admin": "Administrador",
+      "role_staff": "Personal",
+      "make_admin": "Hacer administrador",
+      "remove_admin": "Quitar administrador"
     }
   },
   "producer": {

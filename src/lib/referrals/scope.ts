@@ -6,12 +6,16 @@ import type { AuthSession } from "../auth/guard";
 
 const NO_MATCH = "00000000-0000-0000-0000-000000000000";
 
-type ScopeSession = Pick<AuthSession, "role" | "clinicId" | "producerId">;
+type ScopeSession = Pick<AuthSession, "role" | "clinicId" | "producerId" | "userId" | "clinicAdmin">;
 
 export function referralScope(s: ScopeSession): Prisma.ReferralWhereInput {
   switch (s.role) {
     case "clinica":
-      return { clinicId: s.clinicId ?? NO_MATCH };
+      // Administrador de la clinica: ve todos los referidos de la clinica.
+      // Personal individual (ej. un doctor): solo ve los referidos que el mismo registro.
+      return s.clinicAdmin
+        ? { clinicId: s.clinicId ?? NO_MATCH }
+        : { clinicId: s.clinicId ?? NO_MATCH, createdByUserId: s.userId };
     case "productor":
       return { producerId: s.producerId ?? NO_MATCH };
     case "maestro":

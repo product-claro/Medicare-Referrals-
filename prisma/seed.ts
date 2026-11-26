@@ -96,6 +96,8 @@ function fakeSession(opts: {
     userId: opts.userId,
     role: opts.role,
     clinicId: opts.clinicId ?? null,
+    // El usuario de clinica del seed es el "fundador" de esa clinica demo: ve todos sus referidos.
+    clinicAdmin: opts.role === "clinica",
     producerId: opts.producerId ?? null,
     fullName: opts.fullName,
     email: opts.email,

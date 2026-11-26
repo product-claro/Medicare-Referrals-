@@ -190,6 +190,11 @@ export const updateClinicSchema = z
   .refine((v) => Object.keys(v).length > 0, { message: "empty_update", path: ["_"] });
 
 // ---------- Usuarios de una clinica (personal con login propio) ----------
-export const createClinicUserSchema = z.object({ full_name: personName, email }).strict();
+export const createClinicUserSchema = z
+  .object({ full_name: personName, email, clinic_admin: z.boolean().optional() })
+  .strict();
 
-export const setUserActiveSchema = z.object({ active: z.boolean() }).strict();
+export const updateUserSchema = z
+  .object({ active: z.boolean().optional(), clinic_admin: z.boolean().optional() })
+  .strict()
+  .refine((v) => Object.keys(v).length > 0, { message: "empty_update", path: ["_"] });

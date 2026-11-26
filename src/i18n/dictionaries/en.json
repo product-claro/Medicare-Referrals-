@@ -350,14 +350,21 @@
       "users_empty": "This clinic has no users yet.",
       "user_col_name": "Name",
       "user_col_email": "Email",
+      "user_col_role": "Role",
       "user_col_status": "Status",
       "user_col_actions": "Actions",
       "add_user_title": "Add user",
       "user_full_name": "Full name",
       "user_email": "Email",
+      "user_clinic_admin_label": "Clinic administrator",
+      "user_clinic_admin_hint": "Sees all of the clinic's referrals. If left unchecked, this person will only see the referrals they register themselves.",
       "user_submit": "Create user",
       "user_submitting": "Creating...",
-      "user_created_ok": "User created."
+      "user_created_ok": "User created.",
+      "role_admin": "Administrator",
+      "role_staff": "Staff",
+      "make_admin": "Make administrator",
+      "remove_admin": "Remove administrator"
     }
   },
   "producer": {

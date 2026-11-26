@@ -168,6 +168,8 @@ export async function createClinic(actorUserId: string, input: { name: string; e
             email: input.email,
             fullName: input.full_name,
             role: "clinica",
+            // El usuario que se crea junto con la clinica es su administrador: ve todos sus referidos.
+            clinicAdmin: true,
             passwordHash,
             mustChangePassword: true,
           },
@@ -197,12 +199,21 @@ export async function getClinic(id: string) {
   return clinicView(clinic);
 }
 
-function clinicUserView(u: { id: string; email: string; fullName: string; active: boolean; mustChangePassword: boolean; lastLoginAt: Date | null }) {
+function clinicUserView(u: {
+  id: string;
+  email: string;
+  fullName: string;
+  active: boolean;
+  clinicAdmin: boolean;
+  mustChangePassword: boolean;
+  lastLoginAt: Date | null;
+}) {
   return {
     id: u.id,
     email: u.email,
     full_name: u.fullName,
     active: u.active,
+    clinic_admin: u.clinicAdmin,
     must_change_password: u.mustChangePassword,
     last_login_at: u.lastLoginAt,
   };
@@ -220,17 +231,30 @@ export async function listClinicUsers(clinicId: string) {
   return { items: users.map(clinicUserView) };
 }
 
-export async function createClinicUser(actorUserId: string, clinicId: string, input: { full_name: string; email: string }) {
+export async function createClinicUser(
+  actorUserId: string,
+  clinicId: string,
+  input: { full_name: string; email: string; clinic_admin?: boolean },
+) {
   const clinic = await prisma.clinic.findUnique({ where: { id: clinicId }, select: { id: true } });
   if (!clinic) throw new ApiError(404, "not_found");
   const tempPassword = generateTempPassword();
   const passwordHash = await hashPassword(tempPassword);
+  const clinicAdmin = input.clinic_admin ?? false;
   const user = await prisma.$transaction(async (tx) => {
     const u = await tx.user.create({
-      data: { email: input.email, fullName: input.full_name, role: "clinica", clinicId, passwordHash, mustChangePassword: true },
+      data: {
+        email: input.email,
+        fullName: input.full_name,
+        role: "clinica",
+        clinicId,
+        clinicAdmin,
+        passwordHash,
+        mustChangePassword: true,
+      },
     });
     await tx.auditLog.create({
-      data: { actorUserId, action: "user.created", entityType: "user", entityId: u.id, data: { role: "clinica", clinic_id: clinicId } },
+      data: { actorUserId, action: "user.created", entityType: "user", entityId: u.id, data: { role: "clinica", clinic_id: clinicId, clinic_admin: clinicAdmin } },
     });
     return u;
   });
@@ -245,6 +269,20 @@ export async function setUserActive(actorUserId: string, userId: string, active:
     const u = await tx.user.update({ where: { id: userId }, data: { active } });
     await tx.auditLog.create({
       data: { actorUserId, action: active ? "user.activated" : "user.deactivated", entityType: "user", entityId: userId },
+    });
+    return u;
+  });
+  return clinicUserView(updated);
+}
+
+// Promueve o quita el "administrador de clinica" (ve todos los referidos vs. solo los propios).
+export async function setClinicUserAdmin(actorUserId: string, userId: string, clinicAdmin: boolean) {
+  const updated = await prisma.$transaction(async (tx) => {
+    const exists = await tx.user.findUnique({ where: { id: userId }, select: { id: true, role: true } });
+    if (!exists || exists.role !== "clinica") throw new ApiError(404, "not_found");
+    const u = await tx.user.update({ where: { id: userId }, data: { clinicAdmin } });
+    await tx.auditLog.create({
+      data: { actorUserId, action: "user.updated", entityType: "user", entityId: userId, data: { clinic_admin: clinicAdmin } },
     });
     return u;
   });

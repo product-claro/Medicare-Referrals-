@@ -104,6 +104,9 @@ model User {
   fullName           String    @map("full_name")
   role               UserRole
   clinicId           String?   @map("clinic_id") @db.Uuid
+  // Solo tiene sentido con role = clinica. true: ve todos los referidos de la clinica (la "clinica" como
+  // tal). false: solo ve los referidos que el mismo registro (personal individual, ej. un doctor).
+  clinicAdmin        Boolean   @default(false) @map("clinic_admin")
   producerId         String?   @unique @map("producer_id") @db.Uuid
   locale             AppLocale @default(es)
   active             Boolean   @default(true)

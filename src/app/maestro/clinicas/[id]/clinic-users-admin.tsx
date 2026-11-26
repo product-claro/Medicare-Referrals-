@@ -21,6 +21,7 @@ export function ClinicUsersAdmin({ clinicId, initial, text }: Props) {
 
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
+  const [clinicAdmin, setClinicAdmin] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [okMsg, setOkMsg] = useState<string | null>(null);
@@ -36,7 +37,7 @@ export function ClinicUsersAdmin({ clinicId, initial, text }: Props) {
       const res = await fetch(`/api/clinics/${clinicId}/users`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ full_name: fullName.trim(), email: email.trim() }),
+        body: JSON.stringify({ full_name: fullName.trim(), email: email.trim(), clinic_admin: clinicAdmin }),
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
@@ -48,6 +49,7 @@ export function ClinicUsersAdmin({ clinicId, initial, text }: Props) {
       setTempNote(fmt(c.temp_password_note, { email: data.email, password: data.temp_password }));
       setFullName("");
       setEmail("");
+      setClinicAdmin(false);
       setBusy(false);
       router.refresh();
     } catch {
@@ -62,6 +64,19 @@ export function ClinicUsersAdmin({ clinicId, initial, text }: Props) {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ active: !row.active }),
+      });
+      if (res.ok) router.refresh();
+    } catch {
+      // silencioso: el estado visible no cambia si falla, el maestro puede reintentar
+    }
+  }
+
+  async function toggleClinicAdmin(row: ClinicUserRow) {
+    try {
+      const res = await fetch(`/api/users/${row.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ clinic_admin: !row.clinic_admin }),
       });
       if (res.ok) router.refresh();
     } catch {
@@ -90,6 +105,19 @@ export function ClinicUsersAdmin({ clinicId, initial, text }: Props) {
             />
           </label>
         </div>
+        <label className="flex items-start gap-2">
+          <input
+            type="checkbox"
+            checked={clinicAdmin}
+            onChange={(e) => setClinicAdmin(e.target.checked)}
+            disabled={busy}
+            className="mt-1 h-4 w-4"
+          />
+          <span>
+            <span className="block text-sm font-medium">{c.user_clinic_admin_label}</span>
+            <span className="block text-xs text-slate-500">{c.user_clinic_admin_hint}</span>
+          </span>
+        </label>
         <button
           type="button"
           onClick={submitCreate}
@@ -126,6 +154,7 @@ export function ClinicUsersAdmin({ clinicId, initial, text }: Props) {
                 <tr>
                   <th scope="col" className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">{c.user_col_name}</th>
                   <th scope="col" className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">{c.user_col_email}</th>
+                  <th scope="col" className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">{c.user_col_role}</th>
                   <th scope="col" className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">{c.user_col_status}</th>
                   <th scope="col" className="px-3 py-2 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">{c.user_col_actions}</th>
                 </tr>
@@ -135,19 +164,29 @@ export function ClinicUsersAdmin({ clinicId, initial, text }: Props) {
                   <tr key={row.id}>
                     <th scope="row" className="px-3 py-2 text-left text-sm font-medium">{row.full_name}</th>
                     <td className="px-3 py-2 text-sm">{row.email}</td>
+                    <td className="px-3 py-2 text-sm">{row.clinic_admin ? c.role_admin : c.role_staff}</td>
                     <td className="px-3 py-2 text-sm">
                       <span className={row.active ? "text-green-700" : "text-slate-500"}>
                         {row.active ? c.active : c.inactive}
                       </span>
                     </td>
                     <td className="px-3 py-2 text-sm">
-                      <button
-                        type="button"
-                        onClick={() => toggleActive(row)}
-                        className="rounded border border-slate-300 bg-white px-3 py-1 text-xs font-medium hover:bg-brand-50"
-                      >
-                        {row.active ? c.deactivate : c.activate}
-                      </button>
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          onClick={() => toggleActive(row)}
+                          className="rounded border border-slate-300 bg-white px-3 py-1 text-xs font-medium hover:bg-brand-50"
+                        >
+                          {row.active ? c.deactivate : c.activate}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => toggleClinicAdmin(row)}
+                          className="rounded border border-slate-300 bg-white px-3 py-1 text-xs font-medium hover:bg-brand-50"
+                        >
+                          {row.clinic_admin ? c.remove_admin : c.make_admin}
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}

@@ -50,6 +50,7 @@ export interface ClinicUserRow {
   email: string;
   full_name: string;
   active: boolean;
+  clinic_admin: boolean;
   must_change_password: boolean;
   last_login_at: string | null;
 }
